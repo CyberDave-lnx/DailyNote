@@ -1,0 +1,520 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Mi diario</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&display=swap" rel="stylesheet">
+<style>
+/* Diseño: una columna de lectura, compositor arriba y entradas agrupadas por día debajo. */
+:root{
+  --bg:#edf1ef;
+  --surface:#fbfcfb;
+  --ink:#14201d;
+  --muted:#5b6965;
+  --line:#d3dcd8;
+  --soft:#e0ebe7;
+  --accent:#1b6a57;
+  --accent-ink:#ffffff;
+  --rec:#c63a2b;
+  --warn:#8a5a00;
+  --font-ui:"Instrument Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --font-text:"Newsreader",Georgia,"Times New Roman",serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){
+  :root{
+    --bg:#0f1614;
+    --surface:#172220;
+    --ink:#e6eeeb;
+    --muted:#9aaba6;
+    --line:#2b3a36;
+    --soft:#1f302c;
+    --accent:#5cc0a5;
+    --accent-ink:#08201a;
+    --rec:#ff7a68;
+    --warn:#e3b04a;
+    color-scheme:dark;
+  }
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{
+  background:var(--bg);color:var(--ink);font-family:var(--font-ui);font-size:16px;line-height:1.5;
+  padding-block:20px 64px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));
+  padding-right:max(16px,env(safe-area-inset-right,0px));
+}
+.wrap{max-width:720px;margin:0 auto;display:flex;flex-direction:column;gap:20px}
+button,input,textarea,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+header.top{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;flex-wrap:wrap}
+h1{margin:0;font-family:var(--font-text);font-weight:500;font-size:2rem;letter-spacing:-.01em;line-height:1.1}
+.count{color:var(--muted);font-size:.875rem;margin-top:2px}
+.tools{display:flex;gap:8px}
+.btn{border:1px solid var(--line);background:var(--surface);padding:8px 14px;border-radius:10px;font-weight:500;font-size:.9rem}
+.btn:hover{border-color:var(--accent)}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.btn.ghost{background:transparent}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+
+.composer{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:16px;display:flex;flex-direction:column;gap:12px}
+.banner{background:var(--soft);border-radius:10px;padding:8px 12px;font-size:.875rem;display:flex;justify-content:space-between;gap:8px;align-items:center}
+.field{width:100%;border:1px solid var(--line);background:var(--bg);border-radius:10px;padding:10px 12px}
+.field:focus{border-color:var(--accent)}
+#title{font-weight:600}
+#text{font-family:var(--font-text);font-size:1.125rem;line-height:1.6;resize:vertical;min-height:160px}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.label{font-size:.75rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+.chip{border:1px solid var(--line);background:transparent;border-radius:999px;padding:5px 12px;font-size:.85rem}
+.chip[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+
+.voice{border:1px dashed var(--line);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:10px}
+.voice-top{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.rec-btn{display:inline-flex;align-items:center;gap:8px;border:0;border-radius:999px;padding:10px 18px;background:var(--accent);color:var(--accent-ink);font-weight:600}
+.rec-btn .dot{width:10px;height:10px;border-radius:50%;background:currentColor}
+.rec-btn.on{background:var(--rec);color:#fff}
+.rec-btn.on .dot{animation:pulse 1.2s ease-in-out infinite}
+@keyframes pulse{50%{opacity:.25}}
+@media (prefers-reduced-motion:reduce){.rec-btn.on .dot{animation:none}}
+.timer{font-variant-numeric:tabular-nums;color:var(--muted);min-width:3.2em}
+.voice select{border:1px solid var(--line);background:var(--bg);border-radius:8px;padding:6px 8px;font-size:.875rem}
+.check{display:flex;gap:8px;align-items:center;font-size:.875rem;color:var(--muted)}
+.hint{font-size:.8rem;color:var(--muted);margin:0}
+.status{min-height:1.2em;font-size:.875rem;color:var(--muted);margin:0}
+.status.warn{color:var(--warn)}
+audio{width:100%;height:40px}
+.audio-row{display:flex;gap:8px;align-items:center}
+.audio-row audio{flex:1;min-width:0}
+
+.filters{display:flex;flex-direction:column;gap:10px}
+.search{position:relative}
+#search{padding-left:12px}
+
+.day{display:flex;flex-direction:column;gap:10px}
+.day h2{margin:12px 0 0;font-size:.8rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);font-weight:600}
+.entry{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px 16px;display:flex;flex-direction:column;gap:8px}
+.entry-head{display:flex;justify-content:space-between;gap:8px;align-items:center;flex-wrap:wrap}
+.meta{display:flex;gap:8px;align-items:center;color:var(--muted);font-size:.85rem;font-variant-numeric:tabular-nums}
+.pill{background:var(--soft);border-radius:999px;padding:2px 10px;font-size:.78rem;color:var(--ink)}
+.acts{display:flex;gap:4px}
+.link{background:none;border:0;padding:4px 8px;border-radius:8px;color:var(--muted);font-size:.85rem}
+.link:hover{color:var(--ink);background:var(--soft)}
+.link.danger:hover{color:var(--rec)}
+.entry h3{margin:0;font-size:1.05rem}
+.entry p.body{margin:0;font-family:var(--font-text);font-size:1.1rem;line-height:1.6;white-space:pre-wrap;overflow-wrap:anywhere}
+.tags{display:flex;gap:6px;flex-wrap:wrap}
+.tag{font-size:.8rem;color:var(--accent)}
+.confirm{display:flex;gap:8px;align-items:center;font-size:.875rem}
+.empty{text-align:center;color:var(--muted);padding:32px 12px;border:1px dashed var(--line);border-radius:14px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>Mi diario</h1>
+      <div class="count" id="count"></div>
+    </div>
+    <div class="tools">
+      <button class="btn" id="exportBtn" type="button">Exportar</button>
+      <button class="btn" id="importBtn" type="button">Importar</button>
+      <input type="file" id="importFile" accept="application/json" hidden>
+    </div>
+  </header>
+
+  <section class="composer" aria-label="Nueva entrada">
+    <div class="banner" id="editBanner" hidden>
+      <span id="editLabel"></span>
+      <button class="link" id="cancelEdit" type="button">Cancelar edición</button>
+    </div>
+    <input class="field" id="title" type="text" placeholder="Título (opcional)" autocomplete="off">
+    <textarea class="field" id="text" placeholder="¿Cómo estuvo tu día? Escribe o usa la voz."></textarea>
+
+    <div class="voice">
+      <div class="voice-top">
+        <button class="rec-btn" id="recBtn" type="button"><span class="dot"></span><span id="recLabel">Grabar voz</span></button>
+        <span class="timer" id="timer">0:00</span>
+        <select id="lang" aria-label="Idioma de la voz">
+          <option value="es-MX">Español (México)</option>
+          <option value="es-US">Español (EE. UU.)</option>
+          <option value="es-ES">Español (España)</option>
+          <option value="en-US">English (US)</option>
+        </select>
+        <label class="check"><input type="checkbox" id="saveAudio" checked> Guardar también el audio</label>
+      </div>
+      <p class="hint" id="srHint"></p>
+      <div id="pendingAudio"></div>
+    </div>
+
+    <div class="row" id="moods"><span class="label">Ánimo</span></div>
+    <input class="field" id="tags" type="text" placeholder="Etiquetas separadas por coma (entrenamiento, familia…)" autocomplete="off">
+    <p class="status" id="status" role="status" aria-live="polite"></p>
+    <div class="row">
+      <button class="btn primary" id="saveBtn" type="button">Guardar entrada</button>
+    </div>
+  </section>
+
+  <section class="filters" aria-label="Buscar">
+    <input class="field" id="search" type="search" placeholder="Buscar en tus entradas" autocomplete="off">
+    <div class="row" id="moodFilter"><span class="label">Filtrar</span></div>
+  </section>
+
+  <main id="list"></main>
+</div>
+
+<script>
+"use strict";
+const $ = s => document.querySelector(s);
+const MOODS = ["Genial", "Bien", "Normal", "Bajo", "Difícil"];
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+let db = null;
+let editing = null;
+let moodSel = null;
+let filterMood = null;
+let query = "";
+let urls = [];
+let pending = { audio: null, duration: 0 };
+let rec = { on: false, stream: null, mr: null, chunks: [], sr: null, base: "", t0: 0, timer: null, srFailed: false };
+
+/* ---------- Almacenamiento (IndexedDB) ---------- */
+function openDB() {
+  return new Promise((res, rej) => {
+    const r = indexedDB.open("diario-voz", 1);
+    r.onupgradeneeded = () => r.result.createObjectStore("entries", { keyPath: "id" });
+    r.onsuccess = () => res(r.result);
+    r.onerror = () => rej(r.error);
+  });
+}
+const store = mode => db.transaction("entries", mode).objectStore("entries");
+const wrap = r => new Promise((res, rej) => { r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); });
+const getAll = () => wrap(store("readonly").getAll());
+const putEntry = e => wrap(store("readwrite").put(e));
+const delEntry = id => wrap(store("readwrite").delete(id));
+const newId = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+
+/* ---------- Utilidades ---------- */
+function el(tag, cls, text) {
+  const n = document.createElement(tag);
+  if (cls) n.className = cls;
+  if (text != null) n.textContent = text;
+  return n;
+}
+function status(msg, kind) {
+  const s = $("#status");
+  s.textContent = msg || "";
+  s.className = "status" + (kind === "warn" ? " warn" : "");
+}
+function fmtTime(sec) {
+  const m = Math.floor(sec / 60), s = Math.floor(sec % 60);
+  return m + ":" + String(s).padStart(2, "0");
+}
+function dayLabel(ts) {
+  const d = new Date(ts), today = new Date();
+  const y = new Date(); y.setDate(today.getDate() - 1);
+  if (d.toDateString() === today.toDateString()) return "Hoy";
+  if (d.toDateString() === y.toDateString()) return "Ayer";
+  return d.toLocaleDateString("es-MX", { weekday: "long", day: "numeric", month: "long", year: d.getFullYear() === today.getFullYear() ? undefined : "numeric" });
+}
+function parseTags(v) {
+  return [...new Set(v.split(/[,#\n]/).map(t => t.trim().toLowerCase()).filter(Boolean))];
+}
+function blobToDataURL(b) {
+  return new Promise((res, rej) => { const f = new FileReader(); f.onload = () => res(f.result); f.onerror = () => rej(f.error); f.readAsDataURL(b); });
+}
+
+/* ---------- Ánimo ---------- */
+function buildMoodButtons() {
+  MOODS.forEach(m => {
+    const b = el("button", "chip", m); b.type = "button"; b.setAttribute("aria-pressed", "false");
+    b.addEventListener("click", () => { moodSel = moodSel === m ? null : m; syncMoods(); });
+    b.dataset.mood = m; $("#moods").appendChild(b);
+    const f = el("button", "chip", m); f.type = "button"; f.setAttribute("aria-pressed", "false");
+    f.addEventListener("click", () => { filterMood = filterMood === m ? null : m; syncMoods(); renderList(); });
+    f.dataset.mood = m; $("#moodFilter").appendChild(f);
+  });
+}
+function syncMoods() {
+  document.querySelectorAll("#moods .chip").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.mood === moodSel)));
+  document.querySelectorAll("#moodFilter .chip").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.mood === filterMood)));
+}
+
+/* ---------- Grabación y transcripción ---------- */
+function releaseStream() {
+  if (rec.stream) rec.stream.getTracks().forEach(t => t.stop());
+  rec.stream = null;
+}
+function setRecUI(on) {
+  $("#recBtn").classList.toggle("on", on);
+  $("#recLabel").textContent = on ? "Detener" : "Grabar voz";
+  $("#saveAudio").disabled = on;
+  $("#lang").disabled = on;
+}
+function startSR() {
+  const sr = new SR();
+  sr.lang = $("#lang").value;
+  sr.continuous = true;
+  sr.interimResults = true;
+  sr.onresult = ev => {
+    let interim = "";
+    for (let i = ev.resultIndex; i < ev.results.length; i++) {
+      const r = ev.results[i], t = r[0].transcript;
+      if (r.isFinal) rec.base = (rec.base + " " + t.trim()).trim();
+      else interim += t;
+    }
+    $("#text").value = (rec.base + (interim ? " " + interim.trim() : "")).trim();
+  };
+  sr.onerror = ev => {
+    if (ev.error === "no-speech" || ev.error === "aborted") return;
+    rec.srFailed = true;
+    const msg = ev.error === "not-allowed" || ev.error === "service-not-allowed"
+      ? "El navegador no permitió la transcripción. Revisa el permiso del micrófono."
+      : "No se pudo transcribir en vivo (" + ev.error + "). El audio se sigue guardando.";
+    status(msg, "warn");
+  };
+  sr.onend = () => {
+    if (rec.on && !rec.srFailed) { try { sr.start(); } catch (e) { /* ya activo */ } }
+  };
+  rec.sr = sr;
+  try { sr.start(); } catch (e) { rec.srFailed = true; }
+}
+async function startRecording() {
+  const wantAudio = $("#saveAudio").checked;
+  const wantText = !!SR;
+  if (!wantAudio && !wantText) {
+    status("Este navegador no transcribe. Activa «Guardar también el audio» o abre el diario en Chrome o Edge.", "warn");
+    return;
+  }
+  rec.base = $("#text").value.trim();
+  rec.chunks = [];
+  rec.srFailed = false;
+  status("");
+  if (wantAudio) {
+    try {
+      rec.stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mime = window.MediaRecorder ? ["audio/webm;codecs=opus", "audio/webm", "audio/mp4"].find(m => MediaRecorder.isTypeSupported(m)) : null;
+      rec.mr = new MediaRecorder(rec.stream, mime ? { mimeType: mime } : undefined);
+      rec.mr.ondataavailable = e => { if (e.data && e.data.size) rec.chunks.push(e.data); };
+      rec.mr.onstop = () => {
+        const type = (rec.mr && rec.mr.mimeType) || "audio/webm";
+        pending.audio = new Blob(rec.chunks, { type });
+        pending.duration = Math.max(1, Math.round((Date.now() - rec.t0) / 1000));
+        renderPending();
+      };
+      rec.mr.start(1000);
+    } catch (err) {
+      releaseStream();
+      status("No se pudo usar el micrófono. Permite el acceso en el navegador e inténtalo otra vez.", "warn");
+      return;
+    }
+  }
+  rec.on = true;
+  rec.t0 = Date.now();
+  $("#timer").textContent = "0:00";
+  rec.timer = setInterval(() => { $("#timer").textContent = fmtTime((Date.now() - rec.t0) / 1000); }, 500);
+  setRecUI(true);
+  if (wantText) startSR();
+  else status("Grabando audio. Esta opción no transcribe en este navegador.");
+}
+function stopRecording() {
+  if (!rec.on) return;
+  rec.on = false;
+  clearInterval(rec.timer);
+  if (rec.sr) { try { rec.sr.stop(); } catch (e) { /* ya detenido */ } }
+  if (rec.mr && rec.mr.state !== "inactive") rec.mr.stop();
+  releaseStream();
+  setRecUI(false);
+  status(SR ? "Grabación lista. Revisa el texto antes de guardar." : "Audio listo.");
+}
+function renderPending() {
+  const box = $("#pendingAudio");
+  box.textContent = "";
+  if (!pending.audio) return;
+  const row = el("div", "audio-row");
+  const a = document.createElement("audio");
+  a.controls = true;
+  a.src = URL.createObjectURL(pending.audio);
+  const rm = el("button", "link danger", "Quitar audio");
+  rm.type = "button";
+  rm.addEventListener("click", () => { pending = { audio: null, duration: 0 }; renderPending(); });
+  row.append(a, rm);
+  box.appendChild(row);
+}
+
+/* ---------- Guardar, editar, borrar ---------- */
+function resetComposer() {
+  editing = null; moodSel = null; pending = { audio: null, duration: 0 };
+  $("#title").value = ""; $("#text").value = ""; $("#tags").value = "";
+  $("#editBanner").hidden = true;
+  $("#saveBtn").textContent = "Guardar entrada";
+  renderPending(); syncMoods();
+}
+async function save() {
+  if (rec.on) { status("Detén la grabación antes de guardar.", "warn"); return; }
+  const title = $("#title").value.trim(), text = $("#text").value.trim();
+  if (!title && !text && !pending.audio) { status("Escribe algo o graba una nota de voz.", "warn"); return; }
+  const now = Date.now();
+  const e = editing ? { ...editing, updatedAt: now } : { id: newId(), createdAt: now, updatedAt: now };
+  e.title = title; e.text = text; e.mood = moodSel; e.tags = parseTags($("#tags").value);
+  e.audio = pending.audio; e.duration = pending.audio ? pending.duration : 0;
+  try {
+    await putEntry(e);
+  } catch (err) {
+    status("No se pudo guardar. Revisa que el navegador permita almacenamiento local.", "warn");
+    return;
+  }
+  resetComposer();
+  status("Entrada guardada.");
+  await renderList();
+}
+function startEdit(e) {
+  editing = e;
+  moodSel = e.mood || null;
+  pending = { audio: e.audio || null, duration: e.duration || 0 };
+  $("#title").value = e.title || "";
+  $("#text").value = e.text || "";
+  $("#tags").value = (e.tags || []).join(", ");
+  $("#editLabel").textContent = "Editando la entrada del " + new Date(e.createdAt).toLocaleString("es-MX", { dateStyle: "medium", timeStyle: "short" });
+  $("#editBanner").hidden = false;
+  $("#saveBtn").textContent = "Guardar cambios";
+  renderPending(); syncMoods(); status("");
+  window.scrollTo({ top: 0, behavior: "smooth" });
+  $("#text").focus();
+}
+
+/* ---------- Lista ---------- */
+function entryCard(e) {
+  const art = el("article", "entry");
+  const head = el("div", "entry-head");
+  const meta = el("div", "meta");
+  meta.appendChild(el("span", null, new Date(e.createdAt).toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" })));
+  if (e.mood) meta.appendChild(el("span", "pill", e.mood));
+  const acts = el("div", "acts");
+  const edit = el("button", "link", "Editar"); edit.type = "button";
+  edit.addEventListener("click", () => startEdit(e));
+  const del = el("button", "link danger", "Eliminar"); del.type = "button";
+  del.addEventListener("click", () => {
+    acts.textContent = "";
+    const c = el("div", "confirm");
+    c.appendChild(el("span", null, "¿Eliminar esta entrada?"));
+    const yes = el("button", "link danger", "Sí, eliminar"); yes.type = "button";
+    yes.addEventListener("click", async () => { await delEntry(e.id); if (editing && editing.id === e.id) resetComposer(); renderList(); });
+    const no = el("button", "link", "Cancelar"); no.type = "button";
+    no.addEventListener("click", renderList);
+    c.append(yes, no); acts.appendChild(c);
+  });
+  acts.append(edit, del);
+  head.append(meta, acts);
+  art.appendChild(head);
+  if (e.title) art.appendChild(el("h3", null, e.title));
+  if (e.text) art.appendChild(el("p", "body", e.text));
+  if (e.audio) {
+    const row = el("div", "audio-row");
+    const a = document.createElement("audio");
+    a.controls = true; a.preload = "none";
+    const u = URL.createObjectURL(e.audio); urls.push(u); a.src = u;
+    row.appendChild(a);
+    if (e.duration) row.appendChild(el("span", "meta", fmtTime(e.duration)));
+    art.appendChild(row);
+  }
+  if (e.tags && e.tags.length) {
+    const t = el("div", "tags");
+    e.tags.forEach(x => t.appendChild(el("span", "tag", "#" + x)));
+    art.appendChild(t);
+  }
+  return art;
+}
+async function renderList() {
+  urls.forEach(u => URL.revokeObjectURL(u)); urls = [];
+  const all = (await getAll()).sort((a, b) => b.createdAt - a.createdAt);
+  $("#count").textContent = all.length === 1 ? "1 entrada" : all.length + " entradas";
+  const q = query.trim().toLowerCase();
+  const shown = all.filter(e => {
+    if (filterMood && e.mood !== filterMood) return false;
+    if (!q) return true;
+    return ((e.title || "") + " " + (e.text || "") + " " + (e.tags || []).join(" ")).toLowerCase().includes(q);
+  });
+  const list = $("#list");
+  list.textContent = "";
+  if (!shown.length) {
+    list.appendChild(el("div", "empty", all.length ? "Ninguna entrada coincide con tu búsqueda." : "Aún no hay entradas. Escribe la primera o graba una nota de voz."));
+    return;
+  }
+  let key = null, group = null;
+  shown.forEach(e => {
+    const k = new Date(e.createdAt).toDateString();
+    if (k !== key) {
+      key = k;
+      group = el("section", "day");
+      group.appendChild(el("h2", null, dayLabel(e.createdAt)));
+      list.appendChild(group);
+    }
+    group.appendChild(entryCard(e));
+  });
+}
+
+/* ---------- Exportar e importar ---------- */
+async function exportAll() {
+  const all = await getAll();
+  const out = [];
+  for (const e of all) {
+    const o = { ...e };
+    if (e.audio) o.audio = await blobToDataURL(e.audio);
+    out.push(o);
+  }
+  const blob = new Blob([JSON.stringify({ version: 1, entries: out })], { type: "application/json" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "mi-diario-" + new Date().toISOString().slice(0, 10) + ".json";
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 3000);
+  status("Copia exportada con " + all.length + " entradas.");
+}
+async function importFile(file) {
+  try {
+    const data = JSON.parse(await file.text());
+    const list = Array.isArray(data.entries) ? data.entries : [];
+    let n = 0;
+    for (const e of list) {
+      if (!e || !e.id || !e.createdAt) continue;
+      if (typeof e.audio === "string" && e.audio.startsWith("data:")) e.audio = await (await fetch(e.audio)).blob();
+      else e.audio = null;
+      await putEntry(e); n++;
+    }
+    status("Se importaron " + n + " entradas.");
+    renderList();
+  } catch (err) {
+    status("No se pudo leer ese archivo. Usa una copia exportada desde este diario.", "warn");
+  }
+}
+
+/* ---------- Arranque ---------- */
+async function init() {
+  buildMoodButtons();
+  $("#srHint").textContent = SR
+    ? "Habla y el texto aparece solo. Chrome y Edge procesan la voz en servidores de su fabricante; el audio guardado se queda en este dispositivo."
+    : "Este navegador no convierte voz a texto. Usa Chrome o Edge, o el micrófono del teclado del celular.";
+  $("#recBtn").addEventListener("click", () => rec.on ? stopRecording() : startRecording());
+  $("#saveBtn").addEventListener("click", save);
+  $("#cancelEdit").addEventListener("click", () => { resetComposer(); status(""); });
+  $("#search").addEventListener("input", ev => { query = ev.target.value; renderList(); });
+  $("#exportBtn").addEventListener("click", exportAll);
+  $("#importBtn").addEventListener("click", () => $("#importFile").click());
+  $("#importFile").addEventListener("change", ev => { if (ev.target.files[0]) importFile(ev.target.files[0]); ev.target.value = ""; });
+  try {
+    db = await openDB();
+    await renderList();
+  } catch (err) {
+    status("Este navegador no permite guardar datos locales. Prueba con Chrome o Edge fuera de modo privado.", "warn");
+    $("#saveBtn").disabled = true;
+  }
+}
+init();
+</script>
+</body>
+</html>
